@@ -18,7 +18,7 @@ function rowsFor(members) {
   return members.map((m) => [
     m.name || '', m.email || '', m.phone || '', m.district || '', m.university || '',
     m.subject || '', m.current_company || '', m.designation || '', m.department || '',
-    m.status === 'Resigned' ? 'প্রাক্তন সদস্য' : 'সক্রিয় সদস্য',
+    m.status === 'Resigned' ? 'Resigned' : 'Active',
   ]);
 }
 
@@ -197,7 +197,7 @@ export default function MembersTab({ members, onOpenProfile }) {
             )}
             <div style={{ marginTop: 6 }}>
               <Badge tone={m.status === 'Resigned' ? 'danger' : 'success'}>
-                {m.status === 'Resigned' ? 'Resigned' : 'সক্রিয়'}
+                {m.status === 'Resigned' ? 'Resigned' : 'Active'}
               </Badge>
             </div>
           </div>
