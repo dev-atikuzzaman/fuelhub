@@ -26,23 +26,26 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
-    // প্রথম লোডে বর্তমান session আনা
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        loadProfile(session.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
+    let isInitial = true;
 
-    // session পরিবর্তনে listen করা (login/logout/token refresh)
+    // onAuthStateChange নিজেই app লোড হওয়ার সাথে সাথে একবার INITIAL_SESSION
+    // event দিয়ে fire হয় — তাই getSession() আলাদাভাবে কল করে duplicate/racing
+    // fetch তৈরি করার দরকার নেই। এটাই single source of truth।
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session?.user) {
-        loadProfile(session.user.id);
+        loadProfile(session.user.id).finally(() => {
+          if (isInitial) {
+            setLoading(false);
+            isInitial = false;
+          }
+        });
       } else {
         setProfile(null);
+        if (isInitial) {
+          setLoading(false);
+          isInitial = false;
+        }
       }
     });
 
