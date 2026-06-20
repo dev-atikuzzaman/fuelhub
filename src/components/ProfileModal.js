@@ -123,7 +123,7 @@ export default function ProfileModal({ profile, isOwnProfile, onClose, onUpdated
 
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 6, flexWrap: 'wrap' }}>
             {profile.is_admin && <Badge tone="admin">Admin</Badge>}
-            <Badge tone={profile.status === 'Resigned' ? 'danger' : 'success'}>{profile.status === 'Resigned' ? 'Resigned' : 'সক্রিয় সদস্য'}</Badge>
+            <Badge tone={profile.status === 'Resigned' ? 'danger' : 'success'}>{profile.status === 'Resigned' ? 'Resigned' : 'Active সদস্য'}</Badge>
           </div>
 
           {profile.email && (
@@ -166,12 +166,12 @@ export default function ProfileModal({ profile, isOwnProfile, onClose, onUpdated
                     onChange={(e) => setForm({ ...form, status: e.target.value })}
                     style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 8px', fontSize: 14, marginTop: 3, boxSizing: 'border-box', background: '#fff' }}
                   >
-                    <option value="Active">সক্রিয় (এখনো গ্যাস ফিল্ডে কর্মরত)</option>
+                    <option value="Active">Active (এখনো গ্যাস ফিল্ডে কর্মরত)</option>
                     <option value="Resigned">Resigned (অন্য প্রতিষ্ঠানে চলে গেছেন)</option>
                   </select>
                 ) : (
                   <div style={{ fontSize: 14, color: '#1e293b', fontWeight: 500, marginTop: 1 }}>
-                    {profile.status === 'Resigned' ? 'Resigned' : 'সক্রিয়'}
+                    {profile.status === 'Resigned' ? 'Resigned' : 'Active'}
                   </div>
                 )}
               </div>
