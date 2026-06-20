@@ -3,18 +3,30 @@ import React, { useState } from 'react';
 import Avatar from './Avatar';
 import { XIcon, ImageIcon, LoaderIcon } from './Icons';
 import { createPost } from '../lib/dataService';
+import { compressPostImage } from '../lib/imageCompress';
 
 export default function CreatePostModal({ currentUser, onClose, onCreated }) {
   const [text, setText] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [posting, setPosting] = useState(false);
+  const [compressing, setCompressing] = useState(false);
 
-  function handleImageChange(e) {
+  async function handleImageChange(e) {
     const file = e.target.files[0];
     if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setCompressing(true);
+    try {
+      const compressed = await compressPostImage(file);
+      setImageFile(compressed);
+      setImagePreview(URL.createObjectURL(compressed));
+    } catch (err) {
+      console.error('❌ Post image compress error:', err);
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    } finally {
+      setCompressing(false);
+    }
   }
 
   async function handlePost() {
@@ -66,6 +78,15 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
           }}
         />
 
+        {compressing && !imagePreview && (
+          <div style={{
+            marginTop: 10, padding: 24, borderRadius: 14, background: '#f8fafc',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, color: '#64748b', fontSize: 13,
+          }}>
+            <LoaderIcon width={16} height={16} /> ছবি প্রস্তুত হচ্ছে...
+          </div>
+        )}
+
         {imagePreview && (
           <div style={{ position: 'relative', marginTop: 10 }}>
             <img src={imagePreview} alt="preview" style={{ width: '100%', borderRadius: 14, maxHeight: 280, objectFit: 'cover' }} />
@@ -79,14 +100,14 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0ea5e9', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-            <ImageIcon width={18} height={18} /> ছবি যোগ করুন
-            <input type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: compressing ? '#94a3b8' : '#0ea5e9', fontSize: 13, fontWeight: 600, cursor: compressing ? 'default' : 'pointer' }}>
+            <ImageIcon width={18} height={18} /> {compressing ? 'প্রক্রিয়াকরণ হচ্ছে...' : 'ছবি যোগ করুন'}
+            <input type="file" accept="image/*" onChange={handleImageChange} disabled={compressing} style={{ display: 'none' }} />
           </label>
 
           <button
             onClick={handlePost}
-            disabled={posting || (!text.trim() && !imageFile)}
+            disabled={posting || compressing || (!text.trim() && !imageFile)}
             style={{
               padding: '10px 22px', borderRadius: 12, border: 'none',
               background: (text.trim() || imageFile) ? 'linear-gradient(135deg, #0ea5e9, #1e3a5f)' : '#e2e8f0',
