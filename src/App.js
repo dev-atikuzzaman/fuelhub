@@ -32,9 +32,24 @@ function AppShell() {
     loadData();
     const unsubPosts = subscribeToPosts(() => loadData());
     const unsubProfiles = subscribeToProfiles(() => loadData());
+
+    // Safety-net: realtime মাঝে মাঝে miss করতে পারে (tab background এ থাকলে,
+    // বা connection blip হলে) — তাই প্রতি ৪৫ সেকেন্ডে একবার lightweight refresh
+    const fallbackInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadData();
+    }, 45000);
+
+    // Tab আবার visible হলে সাথে সাথে একবার refresh করা (background থেকে ফেরার পর)
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') loadData();
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       unsubPosts();
       unsubProfiles();
+      clearInterval(fallbackInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [loadData]);
 
