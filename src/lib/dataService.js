@@ -29,7 +29,9 @@ export async function updateProfile(userId, updates) {
 
 export async function uploadAvatar(userId, file) {
   const ext = file.name.split('.').pop();
-  const path = `${userId}/avatar.${ext}`;
+  // টাইমস্ট্যাম্প যোগ করা হলো যাতে প্রতিবার নতুন ছবি আপলোডে URL বদলায়
+  // (নাহলে browser/CDN পুরনো ছবি cache করে রাখে এবং নতুন ছবি দেখায় না)
+  const path = `${userId}/avatar-${Date.now()}.${ext}`;
   const { error: uploadError } = await supabase.storage
     .from('avatars')
     .upload(path, file, { upsert: true });
