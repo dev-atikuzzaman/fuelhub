@@ -4,6 +4,7 @@ import Avatar from './Avatar';
 import Badge from './Badge';
 import { XIcon, MailIcon, PhoneIcon, MapPinIcon, BuildingIcon, GraduationIcon, EditIcon, CheckIcon, LoaderIcon } from './Icons';
 import { updateProfile, uploadAvatar } from '../lib/dataService';
+import { compressAvatar } from '../lib/imageCompress';
 
 const FIELDS = [
   { key: 'phone', label: 'ফোন', icon: PhoneIcon },
@@ -22,12 +23,24 @@ export default function ProfileModal({ profile, isOwnProfile, onClose, onUpdated
   const [saving, setSaving] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(profile.avatar_url);
+  const [compressing, setCompressing] = useState(false);
 
-  function handleAvatarChange(e) {
+  async function handleAvatarChange(e) {
     const file = e.target.files[0];
     if (!file) return;
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
+    setCompressing(true);
+    try {
+      const compressed = await compressAvatar(file);
+      setAvatarFile(compressed);
+      setAvatarPreview(URL.createObjectURL(compressed));
+    } catch (err) {
+      console.error('❌ Avatar compress error:', err);
+      // compress fail করলেও মূল ফাইল দিয়ে কাজ চালিয়ে যাওয়া
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    } finally {
+      setCompressing(false);
+    }
   }
 
   async function handleSave() {
@@ -99,7 +112,15 @@ export default function ProfileModal({ profile, isOwnProfile, onClose, onUpdated
         <div style={{ padding: '0 24px 24px', marginTop: -42, textAlign: 'center' }}>
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <Avatar name={profile.name} src={avatarPreview} size={84} />
-            {editing && (
+            {compressing && (
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(15,23,42,0.45)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <LoaderIcon width={22} height={22} color="#fff" />
+              </div>
+            )}
+            {editing && !compressing && (
               <label style={{
                 position: 'absolute', bottom: 0, right: 0, background: '#0ea5e9', borderRadius: '50%',
                 width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -210,7 +231,7 @@ export default function ProfileModal({ profile, isOwnProfile, onClose, onUpdated
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || compressing}
                 style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: 'linear-gradient(135deg, #0ea5e9, #1e3a5f)', color: '#fff', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
               >
                 {saving ? <LoaderIcon width={16} height={16} /> : <><CheckIcon width={16} height={16} /> সংরক্ষণ করুন</>}
