@@ -113,7 +113,7 @@ function AppShell() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #0ea5e9, #1e3a5f)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎓</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a', lineHeight: 1.1 }}>BIM Knowledge Hub</div>
+            <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a', lineHeight: 1.1 }}>Petro Knowledge Hub</div>
             <div style={{ fontSize: 10.5, color: '#94a3b8' }}>{members.length} জন সদস্য</div>
           </div>
         </div>
