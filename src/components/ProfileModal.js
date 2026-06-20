@@ -123,7 +123,7 @@ export default function ProfileModal({ profile, isOwnProfile, onClose, onUpdated
 
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 6, flexWrap: 'wrap' }}>
             {profile.is_admin && <Badge tone="admin">Admin</Badge>}
-            <Badge tone={profile.status === 'Resigned' ? 'danger' : 'success'}>{profile.status === 'Resigned' ? 'প্রাক্তন সদস্য' : 'সক্রিয় সদস্য'}</Badge>
+            <Badge tone={profile.status === 'Resigned' ? 'danger' : 'success'}>{profile.status === 'Resigned' ? 'Resigned' : 'সক্রিয় সদস্য'}</Badge>
           </div>
 
           {profile.email && (
@@ -152,6 +152,52 @@ export default function ProfileModal({ profile, isOwnProfile, onClose, onUpdated
                 </div>
               </div>
             ))}
+
+            {/* Status (Active/Resigned) — যাদের চাকরি পরিবর্তন হয়েছে তাদের জন্য */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 9, background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <BuildingIcon width={16} height={16} color="#0ea5e9" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>স্ট্যাটাস</div>
+                {editing ? (
+                  <select
+                    value={form.status || 'Active'}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 8px', fontSize: 14, marginTop: 3, boxSizing: 'border-box', background: '#fff' }}
+                  >
+                    <option value="Active">সক্রিয় (এখনো গ্যাস ফিল্ডে কর্মরত)</option>
+                    <option value="Resigned">Resigned (অন্য প্রতিষ্ঠানে চলে গেছেন)</option>
+                  </select>
+                ) : (
+                  <div style={{ fontSize: 14, color: '#1e293b', fontWeight: 500, marginTop: 1 }}>
+                    {profile.status === 'Resigned' ? 'Resigned' : 'সক্রিয়'}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* পূর্ববর্তী প্রতিষ্ঠান — শুধু Resigned হলে দেখানো/এডিট করা প্রাসঙ্গিক */}
+            {(form.status === 'Resigned' || profile.status === 'Resigned') && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <BuildingIcon width={16} height={16} color="#ef4444" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>পূর্ববর্তী প্রতিষ্ঠান (BIM/গ্যাস ফিল্ড)</div>
+                  {editing ? (
+                    <input
+                      value={form.original_company || ''}
+                      onChange={(e) => setForm({ ...form, original_company: e.target.value })}
+                      placeholder="যেমন: BGFCL"
+                      style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: 8, padding: '5px 8px', fontSize: 14, marginTop: 3, boxSizing: 'border-box' }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: 14, color: '#1e293b', fontWeight: 500, marginTop: 1 }}>{profile.original_company || '—'}</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {editing && (
