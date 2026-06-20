@@ -1,20 +1,30 @@
 // src/pages/MembersTab.js
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Avatar from '../components/Avatar';
 import Badge from '../components/Badge';
 import MultiSelect from '../components/MultiSelect';
 import { SearchIcon, DownloadIcon } from '../components/Icons';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 function uniqueValues(members, key) {
   return [...new Set(members.map((m) => m[key]).filter(Boolean))].sort();
 }
 
-function exportCSV(members) {
-  const headers = ['নাম', 'ইমেইল', 'ফোন', 'জেলা', 'বিশ্ববিদ্যালয়', 'বিষয়', 'বর্তমান প্রতিষ্ঠান', 'পদবী', 'বিভাগ', 'স্ট্যাটাস'];
-  const rows = members.map((m) => [
-    m.name, m.email, m.phone, m.district, m.university, m.subject, m.current_company, m.designation, m.department, m.status,
+const EXPORT_HEADERS = ['নাম', 'ইমেইল', 'ফোন', 'জেলা', 'বিশ্ববিদ্যালয়', 'বিষয়', 'বর্তমান প্রতিষ্ঠান', 'পদবী', 'বিভাগ', 'স্ট্যাটাস'];
+
+function rowsFor(members) {
+  return members.map((m) => [
+    m.name || '', m.email || '', m.phone || '', m.district || '', m.university || '',
+    m.subject || '', m.current_company || '', m.designation || '', m.department || '',
+    m.status === 'Resigned' ? 'প্রাক্তন সদস্য' : 'সক্রিয় সদস্য',
   ]);
-  const csv = [headers, ...rows].map((r) => r.map((c) => `"${(c || '').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
+}
+
+function exportCSV(members) {
+  const rows = rowsFor(members);
+  const csv = [EXPORT_HEADERS, ...rows].map((r) => r.map((c) => `"${(c || '').toString().replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -24,26 +34,86 @@ function exportCSV(members) {
   URL.revokeObjectURL(url);
 }
 
+function exportExcel(members) {
+  const rows = rowsFor(members);
+  const sheetData = [EXPORT_HEADERS, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(sheetData);
+  ws['!cols'] = EXPORT_HEADERS.map(() => ({ wch: 18 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Members');
+  XLSX.writeFile(wb, 'bim-hub-members.xlsx');
+}
+
+function exportPDF(members) {
+  const doc = new jsPDF({ orientation: 'landscape' });
+  doc.setFontSize(14);
+  doc.text('BIM Knowledge Hub - Member List', 14, 14);
+  doc.setFontSize(9);
+  doc.text(`Total: ${members.length} members | Generated: ${new Date().toLocaleDateString()}`, 14, 20);
+
+  // PDF এ বাংলা ফন্ট সরাসরি না থাকায় headers ও data রোমান হরফে রাখা হলো
+  // (jsPDF default font বাংলা ইউনিকোড render করতে পারে না)
+  const enHeaders = ['Name', 'Email', 'Phone', 'District', 'University', 'Subject', 'Company', 'Designation', 'Department', 'Status'];
+  const rows = members.map((m) => [
+    m.name || '', m.email || '', m.phone || '', m.district || '', m.university || '',
+    m.subject || '', m.current_company || '', m.designation || '', m.department || '',
+    m.status === 'Resigned' ? 'Resigned' : 'Active',
+  ]);
+
+  autoTable(doc, {
+    head: [enHeaders],
+    body: rows,
+    startY: 26,
+    styles: { fontSize: 7, cellPadding: 2 },
+    headStyles: { fillColor: [14, 165, 233] },
+  });
+
+  doc.save('bim-hub-members.pdf');
+}
+
 export default function MembersTab({ members, onOpenProfile }) {
   const [search, setSearch] = useState('');
   const [districtFilter, setDistrictFilter] = useState([]);
   const [universityFilter, setUniversityFilter] = useState([]);
   const [companyFilter, setCompanyFilter] = useState([]);
+  const [subjectFilter, setSubjectFilter] = useState([]);
+  const [departmentFilter, setDepartmentFilter] = useState([]);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (exportRef.current && !exportRef.current.contains(e.target)) setShowExportMenu(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const districts = useMemo(() => uniqueValues(members, 'district'), [members]);
   const universities = useMemo(() => uniqueValues(members, 'university'), [members]);
   const companies = useMemo(() => uniqueValues(members, 'current_company'), [members]);
+  const subjects = useMemo(() => uniqueValues(members, 'subject'), [members]);
+  const departments = useMemo(() => uniqueValues(members, 'department'), [members]);
 
   const filtered = useMemo(() => {
     return members.filter((m) => {
-      const matchesSearch = !search || [m.name, m.district, m.university, m.subject, m.current_company]
+      const matchesSearch = !search || [m.name, m.district, m.university, m.subject, m.current_company, m.department]
         .some((v) => (v || '').toLowerCase().includes(search.toLowerCase()));
       const matchesDistrict = districtFilter.length === 0 || districtFilter.includes(m.district);
       const matchesUniversity = universityFilter.length === 0 || universityFilter.includes(m.university);
       const matchesCompany = companyFilter.length === 0 || companyFilter.includes(m.current_company);
-      return matchesSearch && matchesDistrict && matchesUniversity && matchesCompany;
+      const matchesSubject = subjectFilter.length === 0 || subjectFilter.includes(m.subject);
+      const matchesDepartment = departmentFilter.length === 0 || departmentFilter.includes(m.department);
+      return matchesSearch && matchesDistrict && matchesUniversity && matchesCompany && matchesSubject && matchesDepartment;
     });
-  }, [members, search, districtFilter, universityFilter, companyFilter]);
+  }, [members, search, districtFilter, universityFilter, companyFilter, subjectFilter, departmentFilter]);
+
+  function handleExport(type) {
+    setShowExportMenu(false);
+    if (type === 'csv') exportCSV(filtered);
+    if (type === 'pdf') exportPDF(filtered);
+    if (type === 'excel') exportExcel(filtered);
+  }
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '16px 14px 90px' }}>
@@ -63,17 +133,46 @@ export default function MembersTab({ members, onOpenProfile }) {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
         <MultiSelect label="জেলা" options={districts} selected={districtFilter} onChange={setDistrictFilter} />
         <MultiSelect label="বিশ্ববিদ্যালয়" options={universities} selected={universityFilter} onChange={setUniversityFilter} />
+        <MultiSelect label="বিষয়" options={subjects} selected={subjectFilter} onChange={setSubjectFilter} />
         <MultiSelect label="প্রতিষ্ঠান" options={companies} selected={companyFilter} onChange={setCompanyFilter} />
-        <button
-          onClick={() => exportCSV(filtered)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10,
-            border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            marginLeft: 'auto',
-          }}
-        >
-          <DownloadIcon width={14} height={14} /> CSV
-        </button>
+        <MultiSelect label="বিভাগ" options={departments} selected={departmentFilter} onChange={setDepartmentFilter} />
+
+        <div ref={exportRef} style={{ position: 'relative', marginLeft: 'auto' }}>
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10,
+              border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            <DownloadIcon width={14} height={14} /> Export
+          </button>
+          {showExportMenu && (
+            <div style={{
+              position: 'absolute', top: 38, right: 0, background: '#fff', borderRadius: 12, padding: 6,
+              boxShadow: '0 12px 32px rgba(0,0,0,0.18)', zIndex: 20, minWidth: 140,
+            }}>
+              {[
+                ['csv', 'CSV (.csv)'],
+                ['excel', 'Excel (.xlsx)'],
+                ['pdf', 'PDF (.pdf)'],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => handleExport(key)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 8,
+                    border: 'none', background: 'none', fontSize: 13, color: '#334155', cursor: 'pointer', fontWeight: 600,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10 }}>{filtered.length} জন সদস্য পাওয়া গেছে</div>
@@ -93,9 +192,12 @@ export default function MembersTab({ members, onOpenProfile }) {
             <Avatar name={m.name} src={m.avatar_url} size={56} />
             <div style={{ fontWeight: 700, fontSize: 13.5, color: '#0f172a', marginTop: 8 }}>{m.name}</div>
             <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>{m.district || '—'}</div>
+            {m.current_company && (
+              <div style={{ fontSize: 10.5, color: '#94a3b8', marginTop: 1 }}>{m.current_company}</div>
+            )}
             <div style={{ marginTop: 6 }}>
               <Badge tone={m.status === 'Resigned' ? 'danger' : 'success'}>
-                {m.status === 'Resigned' ? 'প্রাক্তন' : 'সক্রিয়'}
+                {m.status === 'Resigned' ? 'Resigned' : 'সক্রিয়'}
               </Badge>
             </div>
           </div>
