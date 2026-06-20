@@ -189,7 +189,11 @@ export function subscribeToPosts(onChange) {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, onChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, onChange)
-    .subscribe();
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ Realtime posts channel connected');
+      }
+    });
 
   return () => {
     supabase.removeChannel(channel);
@@ -200,7 +204,11 @@ export function subscribeToProfiles(onChange) {
   const channel = supabase
     .channel('public:profiles-directory')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onChange)
-    .subscribe();
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ Realtime profiles channel connected');
+      }
+    });
 
   return () => {
     supabase.removeChannel(channel);
