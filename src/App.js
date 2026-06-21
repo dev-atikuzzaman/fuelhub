@@ -1,9 +1,11 @@
 // src/App.js
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './lib/AuthContext';
+import { ThemeProvider, useTheme } from './lib/ThemeContext';
 import AuthScreen from './components/AuthScreen';
 import Avatar from './components/Avatar';
 import ProfileModal from './components/ProfileModal';
+import ThemeSwitcher from './components/ThemeSwitcher';
 import FeedTab from './pages/FeedTab';
 import MembersTab from './pages/MembersTab';
 import StatsTab from './pages/StatsTab';
@@ -13,6 +15,7 @@ import { HomeIcon, UsersIcon, ChartIcon, LogOutIcon, ShieldIcon, WifiOffIcon, Lo
 
 function AppShell() {
   const { profile, user, signOut, isAdmin, loading: authLoading } = useAuth();
+  const { colors } = useTheme();
   const [tab, setTab] = useState('feed');
   const [members, setMembers] = useState([]);
   const [posts, setPosts] = useState([]);
@@ -66,8 +69,8 @@ function AppShell() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
-        <LoaderIcon width={32} height={32} color="#0ea5e9" />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
+        <LoaderIcon width={32} height={32} color={colors.accent} />
       </div>
     );
   }
@@ -78,9 +81,9 @@ function AppShell() {
 
   if (!profile) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
-        <LoaderIcon width={28} height={28} color="#0ea5e9" />
-        <div style={{ color: '#64748b', fontSize: 14 }}>প্রোফাইল লোড হচ্ছে...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
+        <LoaderIcon width={28} height={28} color={colors.accent} />
+        <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>প্রোফাইল লোড হচ্ছে...</div>
       </div>
     );
   }
@@ -92,7 +95,7 @@ function AppShell() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f4f8', fontFamily: 'inherit' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', fontFamily: 'inherit', transition: 'background 0.2s ease' }}>
       <style>{`
         @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
         @keyframes slideUp { from { opacity:0; transform: translateY(20px);} to {opacity:1; transform:translateY(0);} }
@@ -100,39 +103,40 @@ function AppShell() {
       `}</style>
 
       {!isOnline && (
-        <div style={{ background: '#fef3c7', color: '#92400e', padding: '8px 16px', textAlign: 'center', fontSize: 12.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <div style={{ background: 'var(--warning-soft)', color: 'var(--warning)', padding: '8px 16px', textAlign: 'center', fontSize: 12.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <WifiOffIcon width={14} height={14} /> অফলাইনে আছেন — নতুন তথ্য পেতে ইন্টারনেট সংযোগ দিন
         </div>
       )}
 
       <header style={{
-        position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid #e2e8f0', padding: '12px 16px',
+        position: 'sticky', top: 0, zIndex: 50, background: 'var(--bg-header)', backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--border)', padding: '12px 16px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #0ea5e9, #1e3a5f)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎓</div>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎓</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a', lineHeight: 1.1 }}>Petro Knowledge Hub</div>
-            <div style={{ fontSize: 10.5, color: '#94a3b8' }}>{members.length} জন সদস্য</div>
+            <div style={{ fontWeight: 800, fontSize: 14.5, color: 'var(--text-primary)', lineHeight: 1.1 }}>BIM Knowledge Hub</div>
+            <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{members.length} জন সদস্য</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ThemeSwitcher />
           {isAdmin && (
             <button
               onClick={() => setShowAdminPanel(true)}
               title="Admin Panel"
-              style={{ background: '#ede9fe', border: 'none', borderRadius: 10, padding: 8, cursor: 'pointer', display: 'flex' }}
+              style={{ background: 'var(--admin-soft)', border: 'none', borderRadius: 10, padding: 8, cursor: 'pointer', display: 'flex' }}
             >
-              <ShieldIcon width={17} height={17} color="#7c3aed" />
+              <ShieldIcon width={17} height={17} color={colors.adminColor} />
             </button>
           )}
           <Avatar name={profile.name} src={profile.avatar_url} size={36} onClick={() => setViewingProfile(profile)} />
           <button
             onClick={signOut}
             title="লগআউট"
-            style={{ background: '#f1f5f9', border: 'none', borderRadius: 10, padding: 8, cursor: 'pointer', display: 'flex', color: '#64748b' }}
+            style={{ background: 'var(--bg-surface-alt)', border: 'none', borderRadius: 10, padding: 8, cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}
           >
             <LogOutIcon width={16} height={16} />
           </button>
@@ -142,8 +146,8 @@ function AppShell() {
       <main>
         {dataLoading ? (
           <div style={{ textAlign: 'center', padding: 60 }}>
-            <LoaderIcon width={28} height={28} color="#0ea5e9" />
-            <div style={{ color: '#64748b', fontSize: 13, marginTop: 10 }}>ডেটা লোড হচ্ছে...</div>
+            <LoaderIcon width={28} height={28} color={colors.accent} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginTop: 10 }}>ডেটা লোড হচ্ছে...</div>
           </div>
         ) : tab === 'feed' ? (
           <FeedTab posts={posts} currentUser={profile} onUpdate={loadData} onOpenProfile={(p) => p && setViewingProfile(members.find((m) => m.id === p.id) || p)} />
@@ -155,8 +159,8 @@ function AppShell() {
       </main>
 
       <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(255,255,255,0.96)',
-        backdropFilter: 'blur(12px)', borderTop: '1px solid #e2e8f0', display: 'flex',
+        position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg-header)',
+        backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)', display: 'flex',
         padding: '8px 12px calc(8px + env(safe-area-inset-bottom))', zIndex: 50,
       }}>
         {tabs.map(({ key, label, icon: Icon }) => (
@@ -166,7 +170,7 @@ function AppShell() {
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0',
-              color: tab === key ? '#0ea5e9' : '#94a3b8',
+              color: tab === key ? colors.accent : 'var(--text-muted)',
             }}
           >
             <Icon width={21} height={21} />
@@ -191,8 +195,10 @@ function AppShell() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
