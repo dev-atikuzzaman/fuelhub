@@ -1,7 +1,7 @@
 // src/components/CreatePostModal.js
 import React, { useState } from 'react';
 import Avatar from './Avatar';
-import { XIcon, ImageIcon, LoaderIcon } from './Icons';
+import { XIcon, ImageIcon, LoaderIcon, LockIcon, GlobeIcon, CheckIcon } from './Icons';
 import { createPost } from '../lib/dataService';
 import { compressPostImage } from '../lib/imageCompress';
 
@@ -11,6 +11,8 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [posting, setPosting] = useState(false);
   const [compressing, setCompressing] = useState(false);
+  const [privacy, setPrivacy] = useState('public');
+  const [showPrivacyMenu, setShowPrivacyMenu] = useState(false);
 
   async function handleImageChange(e) {
     const file = e.target.files[0];
@@ -32,7 +34,7 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
   async function handlePost() {
     if (!text.trim() && !imageFile) return;
     setPosting(true);
-    const { error } = await createPost(currentUser.id, text.trim(), imageFile);
+    const { error } = await createPost(currentUser.id, text.trim(), imageFile, privacy);
     setPosting(false);
     if (!error) {
       onCreated && onCreated();
@@ -62,9 +64,50 @@ export default function CreatePostModal({ currentUser, onClose, onCreated }) {
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <Avatar name={currentUser.name} src={currentUser.avatar_url} size={40} />
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', alignSelf: 'center' }}>{currentUser.name}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{currentUser.name}</div>
+            <div style={{ position: 'relative', display: 'inline-block', marginTop: 2 }}>
+              <button
+                onClick={() => setShowPrivacyMenu(!showPrivacyMenu)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 8,
+                  border: '1px solid #e2e8f0', background: '#f8fafc', color: '#64748b', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                {privacy === 'only_me' ? <LockIcon width={11} height={11} /> : <GlobeIcon width={11} height={11} />}
+                {privacy === 'only_me' ? 'শুধু আমি' : 'সবাই দেখবে'}
+              </button>
+              {showPrivacyMenu && (
+                <div style={{
+                  position: 'absolute', left: 0, top: 26, background: '#fff', borderRadius: 10,
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.15)', zIndex: 20, overflow: 'hidden', minWidth: 150,
+                }}>
+                  <button
+                    onClick={() => { setPrivacy('public'); setShowPrivacyMenu(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', border: 'none',
+                      background: privacy === 'public' ? '#f0f9ff' : 'none', color: '#334155', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%',
+                    }}
+                  >
+                    <GlobeIcon width={13} height={13} /> সবাই দেখবে
+                    {privacy === 'public' && <CheckIcon width={12} height={12} color="#0ea5e9" style={{ marginLeft: 'auto' }} />}
+                  </button>
+                  <button
+                    onClick={() => { setPrivacy('only_me'); setShowPrivacyMenu(false); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', border: 'none',
+                      background: privacy === 'only_me' ? '#f0f9ff' : 'none', color: '#334155', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%',
+                    }}
+                  >
+                    <LockIcon width={13} height={13} /> শুধু আমি
+                    {privacy === 'only_me' && <CheckIcon width={12} height={12} color="#0ea5e9" style={{ marginLeft: 'auto' }} />}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <textarea
