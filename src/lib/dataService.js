@@ -202,14 +202,22 @@ export async function toggleReaction(postId, userId, emoji) {
 // REALTIME SUBSCRIPTIONS
 // ============================================================
 export function subscribeToPosts(onChange) {
+  const wrappedOnChange = (payload) => {
+    console.log('📡 Realtime event:', payload.table, payload.eventType, payload.new || payload.old);
+    onChange(payload);
+  };
+
   const channel = supabase
     .channel('public:posts-feed')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, wrappedOnChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, wrappedOnChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, wrappedOnChange)
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         console.log('✅ Realtime posts channel connected');
+      }
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.warn('⚠️ Realtime posts channel status:', status);
       }
     });
 
