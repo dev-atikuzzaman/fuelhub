@@ -92,7 +92,7 @@ export async function getPostsWithDetails() {
   return data;
 }
 
-export async function createPost(userId, text, imageFile) {
+export async function createPost(userId, text, imageFile, privacy = 'public') {
   let image_url = null;
 
   if (imageFile) {
@@ -112,7 +112,7 @@ export async function createPost(userId, text, imageFile) {
 
   const { data, error } = await supabase
     .from('posts')
-    .insert({ user_id: userId, text, image_url })
+    .insert({ user_id: userId, text, image_url, privacy })
     .select()
     .single();
 
@@ -124,6 +124,22 @@ export async function deletePost(postId) {
   const { error } = await supabase.from('posts').delete().eq('id', postId);
   if (error) console.error('❌ deletePost error:', error.message);
   return { error };
+}
+
+export async function updatePost(postId, updates) {
+  // updates এ { text, privacy } থাকতে পারে — text বদলালে edited_at সেট করা হয়
+  const payload = { ...updates };
+  if (updates.text !== undefined) {
+    payload.edited_at = new Date().toISOString();
+  }
+  const { data, error } = await supabase
+    .from('posts')
+    .update(payload)
+    .eq('id', postId)
+    .select()
+    .single();
+  if (error) console.error('❌ updatePost error:', error.message);
+  return { data, error };
 }
 
 // ============================================================
