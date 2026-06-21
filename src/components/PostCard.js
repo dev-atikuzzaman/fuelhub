@@ -1,8 +1,8 @@
 // src/components/PostCard.js
 import React, { useState } from 'react';
 import Avatar from './Avatar';
-import { HeartIcon, CommentIcon, SendIcon, TrashIcon, MoreIcon } from './Icons';
-import { toggleReaction, createComment, deletePost, deleteComment } from '../lib/dataService';
+import { HeartIcon, CommentIcon, SendIcon, TrashIcon, MoreIcon, EditIcon, LockIcon, GlobeIcon, CheckIcon, LoaderIcon } from './Icons';
+import { toggleReaction, createComment, deletePost, deleteComment, updatePost } from '../lib/dataService';
 
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
@@ -28,6 +28,11 @@ export default function PostCard({ post, currentUser, onUpdate, onOpenProfile })
   const [replyTo, setReplyTo] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(post.text);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [showPrivacyMenu, setShowPrivacyMenu] = useState(false);
+  const [updatingPrivacy, setUpdatingPrivacy] = useState(false);
 
   const myReaction = post.reactions?.find((r) => r.user_id === currentUser.id);
   const reactionCounts = groupReactions(post.reactions);
@@ -71,6 +76,29 @@ export default function PostCard({ post, currentUser, onUpdate, onOpenProfile })
     onUpdate && onUpdate();
   }
 
+  async function handleSaveEdit() {
+    if (!editText.trim()) return;
+    setSavingEdit(true);
+    await updatePost(post.id, { text: editText.trim() });
+    setSavingEdit(false);
+    setIsEditing(false);
+    onUpdate && onUpdate();
+  }
+
+  function handleCancelEdit() {
+    setEditText(post.text);
+    setIsEditing(false);
+  }
+
+  async function handleChangePrivacy(privacy) {
+    setShowPrivacyMenu(false);
+    setShowMenu(false);
+    setUpdatingPrivacy(true);
+    await updatePost(post.id, { privacy });
+    setUpdatingPrivacy(false);
+    onUpdate && onUpdate();
+  }
+
   return (
     <div style={{
       background: '#fff', borderRadius: 18, padding: 18, marginBottom: 14,
@@ -91,23 +119,81 @@ export default function PostCard({ post, currentUser, onUpdate, onOpenProfile })
             >
               {post.author?.name || 'অজানা সদস্য'}
             </div>
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>
+            <div style={{ fontSize: 12, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 5 }}>
               {post.author?.designation ? `${post.author.designation} · ` : ''}
               {timeAgo(post.created_at)}
+              {post.edited_at && <span>· এডিট করা হয়েছে</span>}
+              {isOwn && (
+                post.privacy === 'only_me'
+                  ? <LockIcon width={11} height={11} style={{ marginLeft: 2 }} />
+                  : <GlobeIcon width={11} height={11} style={{ marginLeft: 2 }} />
+              )}
             </div>
           </div>
         </div>
 
         {isOwn && (
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowMenu(!showMenu)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}>
-              <MoreIcon width={18} height={18} />
+            <button onClick={() => { setShowMenu(!showMenu); setShowPrivacyMenu(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}>
+              {updatingPrivacy ? <LoaderIcon width={18} height={18} /> : <MoreIcon width={18} height={18} />}
             </button>
             {showMenu && (
               <div style={{
-                position: 'absolute', right: 0, top: 28, background: '#fff', borderRadius: 10,
-                boxShadow: '0 6px 20px rgba(0,0,0,0.15)', zIndex: 10, overflow: 'hidden',
+                position: 'absolute', right: 0, top: 28, background: '#fff', borderRadius: 12,
+                boxShadow: '0 6px 20px rgba(0,0,0,0.15)', zIndex: 10, overflow: 'visible', minWidth: 170,
               }}>
+                <button
+                  onClick={() => { setShowMenu(false); setIsEditing(true); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: 'none',
+                    background: 'none', color: '#334155', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%',
+                  }}
+                >
+                  <EditIcon width={14} height={14} /> এডিট করুন
+                </button>
+
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowPrivacyMenu(!showPrivacyMenu)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: 'none',
+                      background: 'none', color: '#334155', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%',
+                    }}
+                  >
+                    {post.privacy === 'only_me' ? <LockIcon width={14} height={14} /> : <GlobeIcon width={14} height={14} />}
+                    প্রাইভেসি
+                  </button>
+                  {showPrivacyMenu && (
+                    <div style={{
+                      position: 'absolute', right: '100%', top: 0, marginRight: 4, background: '#fff', borderRadius: 10,
+                      boxShadow: '0 6px 20px rgba(0,0,0,0.15)', overflow: 'hidden', minWidth: 150,
+                    }}>
+                      <button
+                        onClick={() => handleChangePrivacy('public')}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: 'none',
+                          background: post.privacy === 'public' ? '#f0f9ff' : 'none', color: '#334155', fontSize: 13,
+                          fontWeight: 600, cursor: 'pointer', width: '100%',
+                        }}
+                      >
+                        <GlobeIcon width={14} height={14} /> সবাই দেখবে
+                        {post.privacy === 'public' && <CheckIcon width={13} height={13} color="#0ea5e9" style={{ marginLeft: 'auto' }} />}
+                      </button>
+                      <button
+                        onClick={() => handleChangePrivacy('only_me')}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', border: 'none',
+                          background: post.privacy === 'only_me' ? '#f0f9ff' : 'none', color: '#334155', fontSize: 13,
+                          fontWeight: 600, cursor: 'pointer', width: '100%',
+                        }}
+                      >
+                        <LockIcon width={14} height={14} /> শুধু আমি
+                        {post.privacy === 'only_me' && <CheckIcon width={13} height={13} color="#0ea5e9" style={{ marginLeft: 'auto' }} />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={() => { setShowMenu(false); handleDeletePost(); }}
                   style={{
@@ -123,9 +209,42 @@ export default function PostCard({ post, currentUser, onUpdate, onOpenProfile })
         )}
       </div>
 
-      <p style={{ fontSize: 14.5, color: '#1e293b', lineHeight: 1.6, marginTop: 12, whiteSpace: 'pre-wrap' }}>
-        {post.text}
-      </p>
+      {isEditing ? (
+        <div style={{ marginTop: 12 }}>
+          <textarea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            rows={3}
+            autoFocus
+            style={{
+              width: '100%', border: '1.5px solid #0ea5e9', borderRadius: 12, padding: 10,
+              fontSize: 14.5, resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+            }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+            <button
+              onClick={handleCancelEdit}
+              style={{ padding: '7px 16px', borderRadius: 10, border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              বাতিল
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={savingEdit || !editText.trim()}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 10, border: 'none',
+                background: 'linear-gradient(135deg, #0ea5e9, #1e3a5f)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              {savingEdit ? <LoaderIcon width={14} height={14} /> : <CheckIcon width={14} height={14} />} সংরক্ষণ
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p style={{ fontSize: 14.5, color: '#1e293b', lineHeight: 1.6, marginTop: 12, whiteSpace: 'pre-wrap' }}>
+          {post.text}
+        </p>
+      )}
 
       {post.image_url && (
         <img
