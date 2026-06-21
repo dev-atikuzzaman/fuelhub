@@ -25,10 +25,17 @@ function AppShell() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const loadData = useCallback(async () => {
-    const [profilesData, postsData] = await Promise.all([getAllProfiles(), getPostsWithDetails()]);
-    setMembers(profilesData);
-    setPosts(postsData);
-    setDataLoading(false);
+    try {
+      console.log('🔄 loadData called');
+      const [profilesData, postsData] = await Promise.all([getAllProfiles(), getPostsWithDetails()]);
+      console.log('✅ loadData fetched:', postsData.length, 'posts,', profilesData.length, 'profiles');
+      setMembers(profilesData);
+      setPosts(postsData);
+    } catch (err) {
+      console.error('❌ loadData failed:', err);
+    } finally {
+      setDataLoading(false);
+    }
   }, []);
 
   useEffect(() => {
