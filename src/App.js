@@ -6,6 +6,7 @@ import AuthScreen from './components/AuthScreen';
 import Avatar from './components/Avatar';
 import ProfileModal from './components/ProfileModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
+import Marquee from './components/Marquee';
 import FeedTab from './pages/FeedTab';
 import MembersTab from './pages/MembersTab';
 import StatsTab from './pages/StatsTab';
@@ -149,6 +150,8 @@ function AppShell() {
           </button>
         </div>
       </header>
+
+      <Marquee />
 
       <main>
         {dataLoading ? (
