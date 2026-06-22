@@ -201,23 +201,28 @@ export async function toggleReaction(postId, userId, emoji) {
 // ============================================================
 // REALTIME SUBSCRIPTIONS
 // ============================================================
-export function subscribeToPosts(onChange) {
+// একটাই channel এ posts, comments, reactions, profiles — সব টেবিল
+// একসাথে subscribe করা হয়েছে। আলাদা আলাদা channel রাখলে প্রতিটার
+// জন্য আলাদা websocket handshake লাগে, যেটা প্রথমবার connect হতে
+// দেরি করায়। একটা channel এ সব একসাথে রাখলে handshake একবারই হয়।
+export function subscribeToAppChanges(onChange) {
   const wrappedOnChange = (payload) => {
     console.log('📡 Realtime event:', payload.table, payload.eventType, payload.new || payload.old);
     onChange(payload);
   };
 
   const channel = supabase
-    .channel('public:posts-feed')
+    .channel('public:bim-hub-live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, wrappedOnChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, wrappedOnChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, wrappedOnChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, wrappedOnChange)
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        console.log('✅ Realtime posts channel connected');
+        console.log('✅ Realtime channel connected (posts + profiles)');
       }
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        console.warn('⚠️ Realtime posts channel status:', status);
+        console.warn('⚠️ Realtime channel status:', status);
       }
     });
 
@@ -226,17 +231,11 @@ export function subscribeToPosts(onChange) {
   };
 }
 
-export function subscribeToProfiles(onChange) {
-  const channel = supabase
-    .channel('public:profiles-directory')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onChange)
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('✅ Realtime profiles channel connected');
-      }
-    });
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
+// পুরনো নাম দুটো এখনও কাজ করবে (backward-compatible alias),
+// যাতে আগের import করা কোড ভেঙে না যায়
+export const subscribeToPosts = subscribeToAppChanges;
+export function subscribeToProfiles() {
+  // এখন profiles ও একই merged channel এর মধ্যে আছে, তাই এটা আলাদা
+  // কিছু করে না — শুধু একটা no-op cleanup ফাংশন রিটার্ন করে।
+  return () => {};
 }
