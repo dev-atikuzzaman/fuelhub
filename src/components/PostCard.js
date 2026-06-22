@@ -1,5 +1,5 @@
 // src/components/PostCard.js
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Avatar from './Avatar';
 import { HeartIcon, CommentIcon, SendIcon, TrashIcon, MoreIcon, EditIcon, LockIcon, GlobeIcon, CheckIcon, LoaderIcon } from './Icons';
 import { toggleReaction, createComment, deletePost, deleteComment, updatePost } from '../lib/dataService';
@@ -33,6 +33,24 @@ export default function PostCard({ post, currentUser, onUpdate, onOpenProfile })
   const [savingEdit, setSavingEdit] = useState(false);
   const [showPrivacyMenu, setShowPrivacyMenu] = useState(false);
   const [updatingPrivacy, setUpdatingPrivacy] = useState(false);
+
+  const menuRef = useRef(null);
+  const emojiRef = useRef(null);
+
+  // মেনু বা ইমোজি পিকারের বাইরে ক্লিক করলে সেটা বন্ধ হয়ে যাবে
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+        setShowPrivacyMenu(false);
+      }
+      if (emojiRef.current && !emojiRef.current.contains(e.target)) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const myReaction = post.reactions?.find((r) => r.user_id === currentUser.id);
   const reactionCounts = groupReactions(post.reactions);
@@ -133,7 +151,7 @@ export default function PostCard({ post, currentUser, onUpdate, onOpenProfile })
         </div>
 
         {isOwn && (
-          <div style={{ position: 'relative' }}>
+          <div ref={menuRef} style={{ position: 'relative' }}>
             <button onClick={() => { setShowMenu(!showMenu); setShowPrivacyMenu(false); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}>
               {updatingPrivacy ? <LoaderIcon width={18} height={18} /> : <MoreIcon width={18} height={18} />}
             </button>
@@ -262,7 +280,7 @@ export default function PostCard({ post, currentUser, onUpdate, onOpenProfile })
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9', position: 'relative' }}>
+      <div ref={emojiRef} style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9', position: 'relative' }}>
         <button
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           style={{
