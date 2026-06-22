@@ -83,6 +83,21 @@ export function AuthProvider({ children }) {
     return null;
   }
 
+  async function updatePassword(currentPassword, newPassword) {
+    // নিরাপত্তার জন্য আগে current password verify করা হয় re-login করে,
+    // যাতে কেউ অন্যের খোলা সেশন থেকে পাসওয়ার্ড বদলাতে না পারে
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: session.user.email,
+      password: currentPassword,
+    });
+    if (verifyError) {
+      return { error: { message: 'বর্তমান পাসওয়ার্ড সঠিক নয়' } };
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error };
+  }
+
   const value = {
     session,
     user: session?.user || null,
@@ -93,6 +108,7 @@ export function AuthProvider({ children }) {
     signIn,
     signOut,
     refreshProfile,
+    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
