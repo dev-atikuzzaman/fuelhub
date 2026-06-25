@@ -1,4 +1,4 @@
-// src/App.js
+// src/App.js 
 import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import { ThemeProvider, useTheme } from './lib/ThemeContext';
