@@ -45,32 +45,6 @@ export async function uploadAvatar(userId, file) {
   return { url: data.publicUrl, error: null };
 }
 
-// admin: ৮০ জনের জন্য placeholder profile pre-load করা (claim করা হয়নি এমন)
-export async function preloadMember(memberData) {
-  // placeholder profile তৈরি করতে আমরা একটা স্পেশাল টেবিল-ফ্রি approach নিচ্ছি:
-  // admin শুধু email pending_members টেবিলে রাখবে, signup এর সময় match করবে।
-  // সহজ approach: সরাসরি pending_invites টেবিল ব্যবহার (নিচে দ্রষ্টব্য)
-  const { data, error } = await supabase
-    .from('pending_invites')
-    .insert(memberData)
-    .select()
-    .single();
-  if (error) console.error('❌ preloadMember error:', error.message);
-  return { data, error };
-}
-
-export async function getPendingInvites() {
-  const { data, error } = await supabase
-    .from('pending_invites')
-    .select('*')
-    .order('created_at', { ascending: true });
-  if (error) {
-    console.error('❌ getPendingInvites error:', error.message);
-    return [];
-  }
-  return data;
-}
-
 // ============================================================
 // POSTS
 // ============================================================
@@ -238,4 +212,211 @@ export function subscribeToProfiles() {
   // এখন profiles ও একই merged channel এর মধ্যে আছে, তাই এটা আলাদা
   // কিছু করে না — শুধু একটা no-op cleanup ফাংশন রিটার্ন করে।
   return () => {};
+}
+
+// ============================================================
+// NOTES (private — শুধু নিজের)
+// ============================================================
+export async function getNotes(userId) {
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false });
+  if (error) { console.error('❌ getNotes:', error.message); return []; }
+  return data;
+}
+
+export async function createNote(userId, { title, body, color }) {
+  const { data, error } = await supabase
+    .from('notes')
+    .insert({ user_id: userId, title, body, color })
+    .select().single();
+  if (error) console.error('❌ createNote:', error.message);
+  return { data, error };
+}
+
+export async function updateNote(noteId, updates) {
+  const { data, error } = await supabase
+    .from('notes')
+    .update(updates)
+    .eq('id', noteId)
+    .select().single();
+  if (error) console.error('❌ updateNote:', error.message);
+  return { data, error };
+}
+
+export async function deleteNote(noteId) {
+  const { error } = await supabase.from('notes').delete().eq('id', noteId);
+  if (error) console.error('❌ deleteNote:', error.message);
+  return { error };
+}
+
+// ============================================================
+// IMPORTANT UPDATES (সবাই দেখবে)
+// ============================================================
+export async function getImportantUpdates() {
+  const { data, error } = await supabase
+    .from('important_updates')
+    .select('*, author:profiles!important_updates_user_id_fkey(id, name, avatar_url, designation)')
+    .order('created_at', { ascending: false });
+  if (error) { console.error('❌ getImportantUpdates:', error.message); return []; }
+  return data;
+}
+
+export async function createImportantUpdate(userId, { title, body, priority, start_date, deadline }) {
+  const { data, error } = await supabase
+    .from('important_updates')
+    .insert({ user_id: userId, title, body, priority, start_date: start_date || null, deadline: deadline || null })
+    .select().single();
+  if (error) console.error('❌ createImportantUpdate:', error.message);
+  return { data, error };
+}
+
+export async function deleteImportantUpdate(id) {
+  const { error } = await supabase.from('important_updates').delete().eq('id', id);
+  if (error) console.error('❌ deleteImportantUpdate:', error.message);
+  return { error };
+}
+
+// ============================================================
+// DOCUMENTS (যেকোনো ফাইল)
+// ============================================================
+export async function getDocuments() {
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*, uploader:profiles!documents_user_id_fkey(id, name, avatar_url)')
+    .order('created_at', { ascending: false });
+  if (error) { console.error('❌ getDocuments:', error.message); return []; }
+  return data;
+}
+
+export async function uploadDocument(userId, file, { title, description, category }) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `${userId}/${Date.now()}_${safeName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('documents')
+    .upload(path, file);
+
+  if (uploadError) {
+    console.error('❌ uploadDocument storage:', uploadError.message);
+    return { error: uploadError };
+  }
+
+  const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
+
+  const { data, error } = await supabase
+    .from('documents')
+    .insert({
+      user_id: userId,
+      title: title || file.name,
+      description: description || '',
+      file_url: urlData.publicUrl,
+      file_name: file.name,
+      file_size: file.size,
+      file_type: file.type || '',
+      category,
+    })
+    .select().single();
+
+  if (error) console.error('❌ uploadDocument db:', error.message);
+  return { data, error };
+}
+
+export async function deleteDocument(docId, fileUrl) {
+  // Storage থেকে ফাইল মুছা
+  try {
+    const url = new URL(fileUrl);
+    const pathPart = url.pathname.split('/documents/')[1];
+    if (pathPart) {
+      await supabase.storage.from('documents').remove([decodeURIComponent(pathPart)]);
+    }
+  } catch (e) {
+    console.warn('Storage delete warning:', e.message);
+  }
+  const { error } = await supabase.from('documents').delete().eq('id', docId);
+  if (error) console.error('❌ deleteDocument:', error.message);
+  return { error };
+}
+
+// ============================================================
+// ADMIN — USER MANAGEMENT
+// ============================================================
+export async function getPendingApprovals() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('approved', false)
+    .order('created_at', { ascending: false });
+  if (error) { console.error('❌ getPendingApprovals:', error.message); return []; }
+  return data;
+}
+
+export async function approveUser(userId) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ approved: true })
+    .eq('id', userId);
+  if (error) console.error('❌ approveUser:', error.message);
+  return { error };
+}
+
+export async function rejectUser(userId) {
+  // profile মুছে দেওয়া (cascade এ auth.users থেকে মুছবে না, সেটা dashboard থেকে করতে হবে)
+  const { error } = await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', userId);
+  if (error) console.error('❌ rejectUser:', error.message);
+  return { error };
+}
+
+export async function getAllUsers() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) { console.error('❌ getAllUsers:', error.message); return []; }
+  return data;
+}
+
+// Admin কর্তৃক নতুন user তৈরি (Supabase Admin API — শুধু service_role key দিয়ে কাজ করে,
+// তাই এটা browser থেকে সরাসরি করা সম্ভব নয়। এর পরিবর্তে admin Supabase Dashboard →
+// Authentication → Users → "Invite user" বা "Add user" ব্যবহার করবেন।
+// নিচের ফাংশনটা pending_invites এ pre-load করার জন্য)
+export async function preloadMember(memberData) {
+  const { data, error } = await supabase
+    .from('pending_invites')
+    .insert(memberData)
+    .select()
+    .single();
+  if (error) console.error('❌ preloadMember:', error.message);
+  return { data, error };
+}
+
+export async function getPendingInvites() {
+  const { data, error } = await supabase
+    .from('pending_invites')
+    .select('*')
+    .order('created_at', { ascending: true });
+  if (error) { console.error('❌ getPendingInvites:', error.message); return []; }
+  return data;
+}
+
+export async function updatePendingInvite(id, updates) {
+  const { data, error } = await supabase
+    .from('pending_invites')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) console.error('❌ updatePendingInvite:', error.message);
+  return { data, error };
+}
+
+export async function deletePendingInvite(id) {
+  const { error } = await supabase.from('pending_invites').delete().eq('id', id);
+  if (error) console.error('❌ deletePendingInvite:', error.message);
+  return { error };
 }
