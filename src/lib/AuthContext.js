@@ -104,6 +104,7 @@ export function AuthProvider({ children }) {
     profile,
     loading,
     isAdmin: !!profile?.is_admin,
+    isApproved: !!profile?.approved,
     signUp,
     signIn,
     signOut,
