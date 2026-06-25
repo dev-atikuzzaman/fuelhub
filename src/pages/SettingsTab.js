@@ -1,4 +1,4 @@
-// src/pages/SettingsTab.js
+// src/pages/SettingsTab.js 
 import React, { useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { useTheme } from '../lib/ThemeContext';
