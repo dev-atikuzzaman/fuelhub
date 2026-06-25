@@ -11,11 +11,19 @@ import FeedTab from './pages/FeedTab';
 import MembersTab from './pages/MembersTab';
 import StatsTab from './pages/StatsTab';
 import AdminPanel from './pages/AdminPanel';
+import NotesTab from './pages/NotesTab';
+import WebsitesTab from './pages/WebsitesTab';
+import ImportantUpdatesTab from './pages/ImportantUpdatesTab';
+import DocumentsTab from './pages/DocumentsTab';
+import SettingsTab from './pages/SettingsTab';
 import { getAllProfiles, getPostsWithDetails, subscribeToPosts, subscribeToProfiles } from './lib/dataService';
-import { HomeIcon, UsersIcon, ChartIcon, LogOutIcon, ShieldIcon, WifiOffIcon, LoaderIcon } from './components/Icons';
+import { HomeIcon, UsersIcon, ChartIcon, LogOutIcon, ShieldIcon, WifiOffIcon, LoaderIcon, NoteIcon, BellIcon, FolderIcon, GlobeIcon } from './components/Icons';
+
+// SettingsIcon inline যোগ করা হলো
+const SettingsIcon = (p) => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
 
 function AppShell() {
-  const { profile, user, signOut, isAdmin, loading: authLoading } = useAuth();
+  const { profile, user, signOut, isAdmin, isApproved, loading: authLoading } = useAuth();
   const { colors } = useTheme();
   const [tab, setTab] = useState('feed');
   const [members, setMembers] = useState([]);
@@ -45,10 +53,10 @@ function AppShell() {
     const unsubProfiles = subscribeToProfiles(() => loadData());
 
     // Safety-net: realtime মাঝে মাঝে miss করতে পারে (tab background এ থাকলে,
-    // বা connection blip হলে) — তাই প্রতি 0.5 সেকেন্ডে একবার lightweight refresh
+    // বা connection blip হলে) — তাই প্রতি ৪৫ সেকেন্ডে একবার lightweight refresh
     const fallbackInterval = setInterval(() => {
       if (document.visibilityState === 'visible') loadData();
-    }, 500);
+    }, 45000);
 
     // Tab আবার visible হলে সাথে সাথে একবার refresh করা (background থেকে ফেরার পর)
     function handleVisibility() {
@@ -96,10 +104,39 @@ function AppShell() {
     );
   }
 
+  // Approval pending screen
+  if (!isApproved) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0ea5e9 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ background: 'rgba(255,255,255,0.97)', borderRadius: 24, padding: '40px 32px', maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ fontSize: 52, marginBottom: 16 }}>⏳</div>
+          <h2 style={{ margin: '0 0 10px', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>অনুমোদনের অপেক্ষায়</h2>
+          <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: '0 0 24px' }}>
+            আপনার account তৈরি হয়েছে। Admin অনুমোদন দেওয়ার পর আপনি BIM Knowledge Hub এ প্রবেশ করতে পারবেন।
+          </p>
+          <div style={{ background: '#f0f9ff', borderRadius: 14, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#0284c7' }}>
+            📧 {user?.email}
+          </div>
+          <button
+            onClick={signOut}
+            style={{ padding: '11px 24px', borderRadius: 12, border: '1.5px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+          >
+            লগআউট করুন
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const tabs = [
     { key: 'feed', label: 'ফিড', icon: HomeIcon },
     { key: 'members', label: 'সদস্য', icon: UsersIcon },
+    { key: 'updates', label: 'আপডেট', icon: BellIcon },
+    { key: 'notes', label: 'নোট', icon: NoteIcon },
+    { key: 'websites', label: 'ওয়েবসাইট', icon: GlobeIcon },
+    { key: 'documents', label: 'ডকুমেন্ট', icon: FolderIcon },
     { key: 'stats', label: 'পরিসংখ্যান', icon: ChartIcon },
+    { key: 'settings', label: 'সেটিংস', icon: SettingsIcon },
   ];
 
   return (
@@ -163,6 +200,16 @@ function AppShell() {
           <FeedTab posts={posts} currentUser={profile} onUpdate={loadData} onOpenProfile={(p) => p && setViewingProfile(members.find((m) => m.id === p.id) || p)} />
         ) : tab === 'members' ? (
           <MembersTab members={members} onOpenProfile={setViewingProfile} />
+        ) : tab === 'updates' ? (
+          <ImportantUpdatesTab currentUser={profile} />
+        ) : tab === 'notes' ? (
+          <NotesTab currentUser={profile} />
+        ) : tab === 'websites' ? (
+          <WebsitesTab />
+        ) : tab === 'documents' ? (
+          <DocumentsTab currentUser={profile} />
+        ) : tab === 'settings' ? (
+          <SettingsTab currentUser={profile} />
         ) : (
           <StatsTab members={members} posts={posts} />
         )}
@@ -170,23 +217,28 @@ function AppShell() {
 
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg-header)',
-        backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)', display: 'flex',
-        padding: '8px 12px calc(8px + env(safe-area-inset-bottom))', zIndex: 50,
+        backdropFilter: 'blur(12px)', borderTop: '1px solid var(--border)',
+        padding: '6px 4px calc(6px + env(safe-area-inset-bottom))', zIndex: 50,
+        overflowX: 'auto', overflowY: 'hidden',
       }}>
-        {tabs.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-              background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0',
-              color: tab === key ? colors.accent : 'var(--text-muted)',
-            }}
-          >
-            <Icon width={21} height={21} />
-            <span style={{ fontSize: 10.5, fontWeight: 700 }}>{label}</span>
-          </button>
-        ))}
+        <div style={{ display: 'flex', minWidth: 'max-content', padding: '0 4px' }}>
+          {tabs.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                background: tab === key ? `${colors.accent}18` : 'none',
+                border: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: 12,
+                color: tab === key ? colors.accent : 'var(--text-muted)',
+                minWidth: 56, flexShrink: 0,
+              }}
+            >
+              <Icon width={20} height={20} />
+              <span style={{ fontSize: 9.5, fontWeight: 700, whiteSpace: 'nowrap' }}>{label}</span>
+            </button>
+          ))}
+        </div>
       </nav>
 
       {viewingProfile && (
