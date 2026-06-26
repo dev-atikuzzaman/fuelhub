@@ -29,11 +29,11 @@ const COMPANIES = [
     id: 3,
     name: 'BAPEX',
     shortName: 'BX',
-    fullName: 'Bangladesh Oil, Gas & Mineral Corporation (Exploration)',
+    fullName: 'Bangladesh Petroleum Exploration and Production Company Limited',
     url: 'https://bapex.com.bd/',
     color: '#7c2d12',
     accent: '#f97316',
-    category: 'Exploration', 'Gas Production',
+    category: 'Exploration',
   },
   {
     id: 4,
@@ -194,6 +194,16 @@ const COMPANIES = [
     color: '#1e3a5f',
     accent: '#f59e0b',
     category: 'Report',
+  },
+    {
+    id: 20,
+    name: 'BAPEX',
+    shortName: 'BX',
+    fullName: 'Bangladesh Petroleum Exploration and Production Company Limited',
+    url: 'https://bapex.com.bd/',
+    color: '#7c2d12',
+    accent: '#f97316',
+    category: 'Gas Production',
   },
 ];
 
