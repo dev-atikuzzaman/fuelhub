@@ -42,7 +42,7 @@ export default function Marquee() {
         }
         .marquee-track {
           display: inline-flex;
-          animation: marquee-scroll 90s linear infinite;
+          animation: marquee-scroll 120s linear infinite;
         }
         .marquee-track:hover {
           animation-play-state: paused;
