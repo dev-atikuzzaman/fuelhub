@@ -53,10 +53,10 @@ function AppShell() {
     const unsubProfiles = subscribeToProfiles(() => loadData());
 
     // Safety-net: realtime মাঝে মাঝে miss করতে পারে (tab background এ থাকলে,
-    // বা connection blip হলে) — তাই প্রতি ৪৫ সেকেন্ডে একবার lightweight refresh
+    // বা connection blip হলে) — তাই প্রতি ০.৫ সেকেন্ডে একবার lightweight refresh
     const fallbackInterval = setInterval(() => {
       if (document.visibilityState === 'visible') loadData();
-    }, 45000);
+    }, 500);
 
     // Tab আবার visible হলে সাথে সাথে একবার refresh করা (background থেকে ফেরার পর)
     function handleVisibility() {
