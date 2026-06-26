@@ -112,7 +112,7 @@ function AppShell() {
           <div style={{ fontSize: 52, marginBottom: 16 }}>⏳</div>
           <h2 style={{ margin: '0 0 10px', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>অনুমোদনের অপেক্ষায়</h2>
           <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: '0 0 24px' }}>
-            আপনার account তৈরি হয়েছে। Admin অনুমোদন দেওয়ার পর আপনি BIM Knowledge Hub এ প্রবেশ করতে পারবেন।
+            আপনার account তৈরি হয়েছে। Admin অনুমোদন দেওয়ার পর আপনি Petro Knowledge Hub এ প্রবেশ করতে পারবেন।
           </p>
           <div style={{ background: '#f0f9ff', borderRadius: 14, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#0284c7' }}>
             📧 {user?.email}
@@ -161,7 +161,7 @@ function AppShell() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🎓</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 14.5, color: 'var(--text-primary)', lineHeight: 1.1 }}>BIM Knowledge Hub</div>
+            <div style={{ fontWeight: 800, fontSize: 14.5, color: 'var(--text-primary)', lineHeight: 1.1 }}>Petro Knowledge Hub</div>
             <div style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{members.length} জন সদস্য</div>
           </div>
         </div>
