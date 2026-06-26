@@ -1,6 +1,6 @@
 // public/service-worker.js
 
-const CACHE_NAME = 'bim-hub-v2';
+const CACHE_NAME = 'bim-hub-v3';
 const urlsToCache = [
   '/',
   '/index.html',
